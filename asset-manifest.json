@@ -1,0 +1,18 @@
+{
+  "files": {
+    "main.css": "/form-generator/static/css/main.435d5fe5.chunk.css",
+    "main.js": "/form-generator/static/js/main.bf9fdce2.chunk.js",
+    "main.js.map": "/form-generator/static/js/main.bf9fdce2.chunk.js.map",
+    "runtime~main.js": "/form-generator/static/js/runtime~main.37e78be2.js",
+    "runtime~main.js.map": "/form-generator/static/js/runtime~main.37e78be2.js.map",
+    "static/js/2.a7f37d0f.chunk.js": "/form-generator/static/js/2.a7f37d0f.chunk.js",
+    "static/js/2.a7f37d0f.chunk.js.map": "/form-generator/static/js/2.a7f37d0f.chunk.js.map",
+    "static/js/3.e13311ee.chunk.js": "/form-generator/static/js/3.e13311ee.chunk.js",
+    "static/js/3.e13311ee.chunk.js.map": "/form-generator/static/js/3.e13311ee.chunk.js.map",
+    "index.html": "/form-generator/index.html",
+    "precache-manifest.f20d37196f5d16595cc117d5037a626d.js": "/form-generator/precache-manifest.f20d37196f5d16595cc117d5037a626d.js",
+    "service-worker.js": "/form-generator/service-worker.js",
+    "static/css/main.435d5fe5.chunk.css.map": "/form-generator/static/css/main.435d5fe5.chunk.css.map",
+    "static/media/logo.svg": "/form-generator/static/media/logo.06e73328.svg"
+  }
+}
