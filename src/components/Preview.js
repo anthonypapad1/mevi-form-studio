@@ -62,7 +62,8 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
   };
 
   const generateSummaryJSON = (summaryType) => {
-    const summaryFields = fields.filter(field => field[summaryType]);
+    // Get fields that are included in this summary type (either shown or hidden)
+    const summaryFields = fields.filter(field => field[summaryType] !== undefined);
     
     return Object.fromEntries(
       summaryFields.map(field => [
@@ -70,76 +71,107 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
         {
           label: field.label || null,
           type: field.type,
-          display: field.summaryDisplay
+          display: field[summaryType] // true for "Shown", false for "Hidden"
         }
       ])
     );
   };
 
   const generateJson = () => {
-    const output = {
-      id: "00000000-0000-0000-0000-000000000001",
-      version: "1.0",
+    const orderedSections = [...sections].map((section, index) => ({
+      ...section,
+      originalIndex: index
+    }));
+
+    // Get formUploadData from fields marked for upload
+    const formUploadData = fields
+      .filter(field => field.formUpload)
+      .map(field => field.attributeName)
+      .filter(Boolean);
+
+    // Get first section's attribute name for default start section
+    const startSectionAttributeName = sections[0]?.attributeName || null;
+
+    const form = {
+      id: formDetails.formId || '00000000-0000-0000-0000-000000000000',
+      version: "22.1.30",
       metadata: {
         category: formDetails.category || null,
-        order: 1,
+        order: null,
         meviDealRoleCreator: selectedCreators,
         otherSideCanUpload: true,
-        formUploadData: [],
-        settings: {}
+        formUploadData: formUploadData,
+        settings: {
+          type: {}  // Empty by default
+        }
       },
       formJSON: {
-        locale: formDetails.locale || '',
-        type: formDetails.type || '',
-        name: formDetails.name || '',
-        shortName: formDetails.shortName || '',
+        locale: formDetails.locale || null,
+        type: formDetails.type || null,
+        name: formDetails.name || null,
+        shortName: formDetails.shortName || null,
         status: "new",
-        startSectionAttributeName: sections[0]?.attributeName || "defaultSection",
+        startSectionAttributeName: startSectionAttributeName,
         lineNumbers: true,
         formData: [{
           status: "draft",
-          sections: sections.map(section => {
-            const sectionFields = fields
-              .filter(field => field.sectionId === section.id)
-              .map((field, index) => ({
-                order: index + 1,
-                type: field.type,
-                constraint: null,
-                constraintId: null,
-                placeholder: field.placeholder || null,
-                info: null,
-                hint: null,
-                label: field.label,
-                attributeName: field.attributeName,
-                eventTrigger: null,
-                value: null,
-                validation: {
-                  required: true
-                },
-                metadata: (field.type === 'checkboxes' || field.type === 'radio') ? {
-                  options: []
-                } : null
-              }));
-            
-            return {
-              fields: sectionFields,
-              type: "data",
-              attributeName: section.attributeName,
-              title: section.title,
-              subtitle: section.subtitle || null,
-              description: null,
-              info: null,
-              goTo: section.goTo || null
-            };
-          })
+          sections: orderedSections
+            .sort((a, b) => a.originalIndex - b.originalIndex)
+            .map(section => {
+              const { originalIndex, ...sectionWithoutIndex } = section;
+              const sectionFields = fields
+                .filter(field => field.sectionId === section.id)
+                .map(field => ({
+                  order: field.order,
+                  type: field.type,
+                  constraint: field.constraint || null,
+                  constraintId: field.constraintId || null,
+                  placeholder: field.placeholder || null,
+                  info: field.info || null,
+                  hint: field.hint || null,
+                  label: field.label,
+                  attributeName: field.attributeName,
+                  eventTrigger: field.eventTrigger || null,
+                  value: field.value || null,
+                  validation: field.validation || null,
+                  validationErrorMessage: field.validationErrorMessage || null,
+                  metadata: field.metadata ? {
+                    ...field.metadata,
+                    options: field.metadata.options || []
+                  } : null
+                }));
+
+              return {
+                fields: sectionFields,
+                type: sectionWithoutIndex.type || "data",
+                attributeName: sectionWithoutIndex.attributeName,
+                title: sectionWithoutIndex.title,
+                subtitle: sectionWithoutIndex.subtitle || null,
+                description: sectionWithoutIndex.description || null,
+                info: sectionWithoutIndex.info || null,
+                goTo: sectionWithoutIndex.goTo || null
+              };
+            })
         }]
       },
-      formSummaryJSON: generateSummaryJSON('formSummary'),
       dealSummaryJSON: generateSummaryJSON('dealSummary'),
-      signaturesJSON: generateSignaturesJSON()
+      formSummaryJSON: generateSummaryJSON('formSummary'),
+      signaturesJSON: generateSignaturesJSON(),
+      rulesJSON: {
+        draft: {
+          getDesignatedSigners: {
+            contract: selectedRoles
+          }
+        },
+        executed: {
+          setDesignatedSigners: {
+            contract: selectedRoles
+          }
+        }
+      }
     };
 
-    return JSON.stringify(output, null, 2);
+    return JSON.stringify(form, null, 2);
   };
 
   const handleDownload = () => {
