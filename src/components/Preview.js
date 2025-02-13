@@ -94,7 +94,7 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
 
     const form = {
       id: formDetails.formId || '00000000-0000-0000-0000-000000000000',
-      version: "22.1.30",
+      version: "1.0.0",
       metadata: {
         category: formDetails.category || null,
         order: null,
