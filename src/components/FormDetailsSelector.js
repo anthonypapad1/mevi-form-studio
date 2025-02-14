@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Card,
   CardContent,
@@ -13,10 +13,18 @@ import {
   DialogContent,
   DialogActions,
   ListItemIcon,
-  IconButton
+  IconButton,
+  Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  InputAdornment,
+  Tooltip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { STATE_NUMBERS, generateUniqueId, formatFormId } from '../utils/formIdUtils';
 
 // Add no-select style
 const noSelectStyle = {
@@ -66,6 +74,18 @@ const FormDetailsSelector = ({ formDetails, onFormDetailsChange }) => {
   const [openNewCategory, setOpenNewCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [categories, setCategories] = useState(loadSavedCategories);
+
+  useEffect(() => {
+    // Update form ID when state changes (keep this for backend reference)
+    if (formDetails.locale) {
+      const stateNumber = STATE_NUMBERS[formDetails.locale] || '0000';
+      const newFormId = formatFormId(stateNumber);
+      onFormDetailsChange({
+        ...formDetails,
+        formId: newFormId
+      });
+    }
+  }, [formDetails.locale]);
 
   // Function to save custom categories
   const saveCategories = (updatedCategories) => {
@@ -129,110 +149,123 @@ const FormDetailsSelector = ({ formDetails, onFormDetailsChange }) => {
         sx={noSelectStyle}
       />
       <Divider />
-      <CardContent sx={noSelectStyle}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              select
-              fullWidth
-              label="State/Locale"
-              value={formDetails.locale || ''}
-              onChange={handleChange('locale')}
-              helperText="Select the state for this form"
-            >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              {US_STATES.map((state) => (
-                <MenuItem key={state} value={state}>
-                  {state}
+      <CardContent sx={{ 
+        ...noSelectStyle,
+        px: 3,  // Add horizontal padding
+        pb: 3   // Add bottom padding
+      }}>
+        <Stack spacing={3}>
+          <Grid 
+            container 
+            spacing={3}
+            sx={{ 
+              width: '100%',
+              mx: 'auto'  // Center the grid
+            }}
+          >
+            <Grid item xs={12} md={6}>
+              <TextField
+                select
+                fullWidth
+                label="State/Locale"
+                value={formDetails.locale || ''}
+                onChange={handleChange('locale')}
+                helperText="Select the state for this form"
+              >
+                <MenuItem value="">
+                  <em>None</em>
                 </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Form Type"
-              value={formDetails.type || ''}
-              onChange={handleChange('type')}
-              helperText="Enter the type of form"
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Form Name"
-              value={formDetails.name || ''}
-              onChange={handleChange('name')}
-              helperText="Enter the full name of the form"
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Short Name"
-              value={formDetails.shortName || ''}
-              onChange={handleChange('shortName')}
-              helperText="Enter a short name for the form"
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              select
-              fullWidth
-              label="Category"
-              value={formDetails.category || ''}
-              onChange={handleChange('category')}
-              helperText="Select or add a new category"
-            >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              {categories.map((category) => (
+                {US_STATES.map((state) => (
+                  <MenuItem key={state} value={state}>
+                    {state}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Form Type"
+                value={formDetails.type || ''}
+                onChange={handleChange('type')}
+                helperText="Enter the type of form"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Form Name"
+                value={formDetails.name || ''}
+                onChange={handleChange('name')}
+                helperText="Enter the full name of the form"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Short Name"
+                value={formDetails.shortName || ''}
+                onChange={handleChange('shortName')}
+                helperText="Enter a short name for the form"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                select
+                fullWidth
+                label="Category"
+                value={formDetails.category || ''}
+                onChange={handleChange('category')}
+                helperText="Select or add a new category"
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {categories.map((category) => (
+                  <MenuItem 
+                    key={category} 
+                    value={category}
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <span>{category}</span>
+                    {!PREDEFINED_CATEGORIES.includes(category) && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteCategory(category);
+                        }}
+                        sx={{ 
+                          ml: 1,
+                          opacity: 0.7,
+                          '&:hover': { opacity: 1 }
+                        }}
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </MenuItem>
+                ))}
                 <MenuItem 
-                  key={category} 
-                  value={category}
-                  sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
+                  value="new"
+                  sx={{
+                    borderTop: 1,
+                    borderColor: 'divider',
+                    mt: 1,
+                    color: 'primary.main'
                   }}
                 >
-                  <span>{category}</span>
-                  {!PREDEFINED_CATEGORIES.includes(category) && (
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleDeleteCategory(category);
-                      }}
-                      sx={{ 
-                        ml: 1,
-                        opacity: 0.7,
-                        '&:hover': { opacity: 1 }
-                      }}
-                    >
-                      <DeleteOutlineIcon fontSize="small" />
-                    </IconButton>
-                  )}
+                  <AddIcon sx={{ mr: 1 }} /> Add New Category
                 </MenuItem>
-              ))}
-              <MenuItem 
-                value="new"
-                sx={{
-                  borderTop: 1,
-                  borderColor: 'divider',
-                  mt: 1,
-                  color: 'primary.main'
-                }}
-              >
-                <AddIcon sx={{ mr: 1 }} /> Add New Category
-              </MenuItem>
-            </TextField>
+              </TextField>
+            </Grid>
           </Grid>
-        </Grid>
+        </Stack>
       </CardContent>
 
       <Dialog 

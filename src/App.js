@@ -91,37 +91,26 @@ function App() {
   });
   const [resetFileUpload, setResetFileUpload] = useState(false);  // Add this state
 
-  const handleFileUpload = (data) => {
-    console.log('Raw CSV data:', data);
-
-    // Transform CSV data into fields
-    const uploadedFields = data.map((row, index) => {
-      const field = {
-        id: `field-${index}`,
-        attributeName: row.field,             
-        type: row.fieldType,                  
-        label: row.field,                     
-        placeholder: row.placeholder,         
-        sectionId: null,
-        formSummary: false,                   // Add form summary flag
-        dealSummary: false,                   // Add deal summary flag
-        summaryDisplay: false                 // Add display flag for summaries
-      };
-      
-      console.log('Created field:', field);
-      return field;
-    });
-
-    setFields(uploadedFields);
+  const handleFileUpload = (fields) => {
+    console.log('handleFileUpload received fields:', fields);
+    setFields(fields);
   };
 
   const handleFieldAssignment = (fieldId, sectionId) => {
     console.log('Assigning field:', fieldId, 'to section:', sectionId);
     setFields(prevFields => {
-      const newFields = prevFields.map(field => 
-        field.id === fieldId ? { ...field, sectionId } : field
-      );
-      console.log('Updated fields:', newFields);
+      const newFields = prevFields.map(field => {
+        if (field.id === fieldId) {
+          // Preserve all field properties, including metadata
+          return { 
+            ...field,
+            sectionId,
+            metadata: field.metadata  // Explicitly preserve metadata
+          };
+        }
+        return field;
+      });
+      console.log('Updated fields with metadata:', newFields);
       return newFields;
     });
   };
@@ -221,7 +210,7 @@ function App() {
                 <FileUpload 
                   onUpload={handleFileUpload} 
                   resetTrigger={resetFileUpload}
-                  disabled={fields.length > 0}  // Disable when fields exist
+                  disabled={!!fields.length}
                 />
               </Box>
               {fields.length > 0 && (
