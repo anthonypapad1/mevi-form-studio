@@ -1,0 +1,214 @@
+[
+	{
+		"order": 31,
+		"type": "radio",
+		"constraint": null,
+		"constraintId": null,
+		"placeholder": null,
+		"info": null,
+		"hint": null,
+		"label": "Radio Example",
+		"attributeName": "radioExample",
+		"eventTrigger": null,
+		"value": null,
+		"validation": {
+			"min": null,
+			"max": null,
+			"minLength": null,
+			"maxLength": null,
+			"patterns": null,
+			"required": null
+		},
+		"validationErrorMessage": null,
+		"metadata": {
+			"options": [
+				{
+					"value": "radio1",
+					"text": "Radio Option 1"
+				},
+				{
+					"value": "radio2",
+					"text": "Radio Option 2"
+				}
+			]
+		}
+	},
+	{
+		"order": 14,
+		"type": "checkbox",
+		"constraint": null,
+		"constraintId": null,
+		"placeholder": null,
+		"info": null,
+		"hint": null,
+		"label": "Checkbox Example",
+		"attributeName": "checkboxExample",
+		"eventTrigger": null,
+		"value": null,
+		"validation": {
+			"min": null,
+			"max": null,
+			"minLength": null,
+			"maxLength": null,
+			"patterns": null,
+			"required": true
+		},
+		"validationErrorMessage": "Required",
+		"metadata": {
+			"options": [
+				{
+					"value": "checkboxExample1",
+					"text": "Option 1"
+				},
+				{
+					"value": "checkboxExample2",
+					"text": "Option 2"
+				}
+			]
+		}
+	},
+	{
+		"order": 116,
+		"type": "checkboxWithOther",
+		"constraint": null,
+		"constraintId": null,
+		"placeholder": null,
+		"info": null,
+		"hint": null,
+		"label": null,
+		"attributeName": "checkboxOtherExample",
+		"eventTrigger": null,
+		"value": null,
+		"validation": {
+			"min": null,
+			"max": null,
+			"minLength": null,
+			"maxLength": null,
+			"patterns": null,
+			"required": null
+		},
+		"validationErrorMessage": null,
+		"metadata": {
+			"options": [
+				{
+					"value": "checkboxOtherExample1",
+					"text": "Example 1"
+				},
+				{
+					"value": "checkboxOtherExample2",
+					"text": "Example 2"
+				}
+			],
+			"other": {
+				"checkbox": {
+					"text": "Other",
+					"value": "checkboxOtherExample3"
+				},
+				"input": {
+					"attributeName": "checkboxOtherExample3Input",
+					"placeholder": "details...",
+					"validation": {
+						"min": null,
+						"max": null,
+						"minLength": null,
+						"maxLength": null,
+						"patterns": null,
+						"required": true
+					},
+					"validationErrorMessage": "Required",
+					"value": null
+				}
+			}
+		}
+	},
+	{
+		"order": 2,
+		"type": "radioWithOther",
+		"constraint": null,
+		"constraintId": null,
+		"placeholder": null,
+		"info": null,
+		"hint": null,
+		"label": "Radio With Other Example",
+		"attributeName": "radioExampleOther",
+		"eventTrigger": null,
+		"value": null,
+		"validation": {
+			"min": null,
+			"max": null,
+			"minLength": null,
+			"maxLength": null,
+			"patterns": null,
+			"required": true
+		},
+		"validationErrorMessage": "Required",
+		"metadata": {
+			"options": [
+				{
+					"value": "radioExampleOther1",
+					"text": "Option 1"
+				},
+				{
+					"value": "radioExampleOther2",
+					"text": "Option 2"
+				}
+			],
+			"other": {
+				"input": {
+					"attributeName": "radioExampleOther3Input",
+					"placeholder": null,
+					"validation": {
+						"min": null,
+						"max": null,
+						"minLength": null,
+						"maxLength": null,
+						"patterns": null,
+						"required": true
+					},
+					"validationErrorMessage": "Required",
+					"value": null
+				},
+				"radio": {
+					"text": "Radio Option 3",
+					"value": "radioExampleOther3"
+				}
+			}
+		}
+	},
+	{
+		"order": 39,
+		"type": "decision",
+		"constraint": null,
+		"constraintId": null,
+		"placeholder": null,
+		"info": null,
+		"hint": null,
+		"label": null,
+		"attributeName": "decisionExample",
+		"eventTrigger": null,
+		"value": null,
+		"validation": {
+			"min": null,
+			"max": null,
+			"minLength": null,
+			"maxLength": null,
+			"patterns": null,
+			"required": true
+		},
+		"validationErrorMessage": "Required",
+		"metadata": {
+			"options": [
+				{
+					"value": "example1",
+					"text": "Option 1",
+					"goTo": null
+				},
+				{
+					"value": "example2",
+					"text": "Option 2",
+					"goTo": null
+				}
+			]
+		}
+	}
+]
