@@ -96,7 +96,8 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
     'checkboxWithOther',
     'radio',
     'radioWithOther',
-    'decision'
+    'decision',
+    'inlineInput'
   ];
 
   // Add mouse move handler
@@ -179,10 +180,16 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
     if (editingField) {
       const updatedField = {
         ...editingField,
-        metadata: editingField.metadata ? {
+        // Remove field-level goTo for decision fields
+        ...(editingField.type === 'decision' && editingField.goTo && { goTo: undefined }),
+        metadata: {
           ...editingField.metadata,
-          options: editingOptions
-        } : null
+          options: editingOptions.map(option => ({
+            ...option,
+            // Ensure goTo is included for decision field options
+            ...(editingField.type === 'decision' && { goTo: option.goTo || null })
+          }))
+        }
       };
 
       const updatedFields = fields.map(field => 
@@ -206,10 +213,13 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
     setEditingOptions(editingOptions.filter((_, i) => i !== index));
   };
 
-  const handleOptionChange = (index, field, value) => {
-    const newOptions = [...editingOptions];
-    newOptions[index] = { ...newOptions[index], [field]: value };
-    setEditingOptions(newOptions);
+  const handleOptionChange = (index, property, value) => {
+    const updatedOptions = [...editingOptions];
+    updatedOptions[index] = {
+      ...updatedOptions[index],
+      [property]: value
+    };
+    setEditingOptions(updatedOptions);
   };
 
   // Add handler for creating new field
@@ -234,14 +244,35 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
         required: true
       },
       validationErrorMessage: 'Required',
-      metadata: ['checkbox', 'checkboxWithOther', 'radio', 'radioWithOther', 'decision'].includes(newField.type)
-        ? { options: newFieldOptions }
-        : null,
+      metadata: newField.type === 'inlineInput' 
+        ? {
+            content: [{
+              attributeName: '',
+              placeholder: '',
+              postLabel: '',
+              preLabel: '',
+              validation: {
+                min: null,
+                max: null,
+                minLength: null,
+                maxLength: null,
+                patterns: null,
+                required: null
+              },
+              validationErrorMessage: null,
+              value: null,
+              width: '100px'
+            }]
+          }
+        : ['checkbox', 'checkboxWithOther', 'radio', 'radioWithOther', 'decision'].includes(newField.type)
+          ? { options: newFieldOptions }
+          : null,
       sectionId: null
     };
 
     onFieldsUpdate([...fields, createdField]);
     setCreateDialogOpen(false);
+    // Reset form
     setNewField({
       label: '',
       type: 'input',
@@ -338,169 +369,254 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
 
     return (
       <Dialog open={!!editingField} onClose={() => setEditingField(null)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Field: {editingField.label || 'Unnamed Field'}</DialogTitle>
+        <DialogTitle>Edit Field</DialogTitle>
         <DialogContent>
-          {/* Basic Field Properties */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="subtitle1" color="primary" gutterBottom sx={{ fontWeight: 500 }}>
-              Basic Properties
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <TextField
-                label="Label"
-                value={editingField.label || ''}
-                onChange={(e) => setEditingField({ ...editingField, label: e.target.value })}
-                sx={{ flexGrow: 1 }}
-              />
-              <TextField
-                label="Placeholder"
-                value={editingField.placeholder || ''}
-                onChange={(e) => setEditingField({ ...editingField, placeholder: e.target.value })}
-                sx={{ flexGrow: 1 }}
-              />
-              <TextField
-                label="Attribute Name"
-                value={editingField.attributeName || ''}
-                onChange={(e) => setEditingField({ ...editingField, attributeName: e.target.value })}
-                sx={{ flexGrow: 1 }}
-              />
-            </Box>
-          </Box>
-
-          {/* Options Section - Only show for option type fields */}
-          {isOptionType && (
-            <Box sx={{ 
-              mb: 4, 
-              p: 2, 
-              bgcolor: 'background.paper', 
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'divider'
-            }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 500 }}>
-                  Options
-                </Typography>
-                <Button
-                  startIcon={<AddIcon />}
-                  onClick={handleAddOption}
-                  size="small"
-                  variant="outlined"
-                >
-                  Add Option
-                </Button>
+          {/* Basic properties for non-inlineInput fields */}
+          {editingField.type !== 'inlineInput' && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="subtitle1" color="primary" gutterBottom sx={{ fontWeight: 500 }}>
+                Basic Properties
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <TextField
+                  label="Label"
+                  value={editingField.label || ''}
+                  onChange={(e) => setEditingField({ ...editingField, label: e.target.value })}
+                  sx={{ flexGrow: 1 }}
+                />
+                <TextField
+                  label="Placeholder"
+                  value={editingField.placeholder || ''}
+                  onChange={(e) => setEditingField({ ...editingField, placeholder: e.target.value })}
+                  sx={{ flexGrow: 1 }}
+                />
+                <TextField
+                  label="Attribute Name"
+                  value={editingField.attributeName || ''}
+                  onChange={(e) => setEditingField({ ...editingField, attributeName: e.target.value })}
+                  sx={{ flexGrow: 1 }}
+                />
               </Box>
-              
+            </Box>
+          )}
+
+          {/* InlineInput specific fields */}
+          {editingField.type === 'inlineInput' && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="subtitle1" color="primary" gutterBottom>
+                Inline Input Properties
+              </Typography>
               <Stack spacing={2}>
-                {editingOptions.map((option, index) => (
-                  <Paper key={index} sx={{ p: 2 }}>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Option {index + 1}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                        <TextField
-                          label="Value"
-                          value={option.value}
-                          onChange={(e) => handleOptionChange(index, 'value', e.target.value)}
-                          size="small"
-                          sx={{ flexGrow: 1 }}
-                        />
-                        <TextField
-                          label="Text"
-                          value={option.text}
-                          onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
-                          size="small"
-                          sx={{ flexGrow: 1 }}
-                        />
-                        <IconButton 
-                          onClick={() => handleRemoveOption(index)}
-                          color="error"
-                          size="small"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
+                <TextField
+                  label="Attribute Name"
+                  value={editingField.metadata?.content[0]?.attributeName || ''}
+                  onChange={(e) => {
+                    const updatedField = {
+                      ...editingField,
+                      metadata: {
+                        ...editingField.metadata,
+                        content: [{
+                          ...editingField.metadata.content[0],
+                          attributeName: e.target.value
+                        }]
+                      }
+                    };
+                    setEditingField(updatedField);
+                  }}
+                  fullWidth
+                />
+                <TextField
+                  label="Pre Label"
+                  value={editingField.metadata?.content[0]?.preLabel || ''}
+                  onChange={(e) => {
+                    const updatedField = {
+                      ...editingField,
+                      metadata: {
+                        ...editingField.metadata,
+                        content: [{
+                          ...editingField.metadata.content[0],
+                          preLabel: e.target.value
+                        }]
+                      }
+                    };
+                    setEditingField(updatedField);
+                  }}
+                  fullWidth
+                  multiline
+                />
+                <TextField
+                  label="Post Label"
+                  value={editingField.metadata?.content[0]?.postLabel || ''}
+                  onChange={(e) => {
+                    const updatedField = {
+                      ...editingField,
+                      metadata: {
+                        ...editingField.metadata,
+                        content: [{
+                          ...editingField.metadata.content[0],
+                          postLabel: e.target.value
+                        }]
+                      }
+                    };
+                    setEditingField(updatedField);
+                  }}
+                  fullWidth
+                  multiline
+                />
+                <TextField
+                  label="Width"
+                  value={editingField.metadata?.content[0]?.width || ''}
+                  onChange={(e) => {
+                    const updatedField = {
+                      ...editingField,
+                      metadata: {
+                        ...editingField.metadata,
+                        content: [{
+                          ...editingField.metadata.content[0],
+                          width: e.target.value
+                        }]
+                      }
+                    };
+                    setEditingField(updatedField);
+                  }}
+                  placeholder="e.g., 100px"
+                  fullWidth
+                />
 
-                      {/* Option-specific controls */}
-                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                        <FormControl size="small" sx={{ minWidth: 200 }}>
-                          <InputLabel>Deal Summary</InputLabel>
-                          <Select
-                            value={option.dealSummary === undefined ? 'exclude' : (option.dealSummary ? 'show' : 'hide')}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              handleOptionChange(index, 'dealSummary', 
-                                value === 'exclude' ? undefined : value === 'show'
-                              );
-                            }}
-                            label="Deal Summary"
-                          >
-                            <MenuItem value="exclude">Do not include</MenuItem>
-                            <MenuItem value="hide">Include (Hidden)</MenuItem>
-                            <MenuItem value="show">Include (Shown)</MenuItem>
-                          </Select>
-                        </FormControl>
-
-                        <FormControl size="small" sx={{ minWidth: 200 }}>
-                          <InputLabel>Form Summary</InputLabel>
-                          <Select
-                            value={option.formSummary === undefined ? 'exclude' : (option.formSummary ? 'show' : 'hide')}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              handleOptionChange(index, 'formSummary', 
-                                value === 'exclude' ? undefined : value === 'show'
-                              );
-                            }}
-                            label="Form Summary"
-                          >
-                            <MenuItem value="exclude">Do not include</MenuItem>
-                            <MenuItem value="hide">Include (Hidden)</MenuItem>
-                            <MenuItem value="show">Include (Shown)</MenuItem>
-                          </Select>
-                        </FormControl>
-
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              size="small"
-                              checked={option.formUpload || false}
-                              onChange={(e) => handleOptionChange(index, 'formUpload', e.target.checked)}
-                            />
-                          }
-                          label="Include in Upload"
-                        />
-                      </Box>
-                    </Box>
-                  </Paper>
-                ))}
+                {/* Preview Section */}
+                <Box sx={{ 
+                  mt: 2, 
+                  p: 2, 
+                  bgcolor: 'background.paper', 
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}>
+                  <Typography variant="subtitle2" color="primary" gutterBottom>
+                    Preview
+                  </Typography>
+                  <Typography sx={{ 
+                    fontSize: '0.875rem',
+                    lineHeight: 1.5,
+                    color: 'text.primary',
+                    '& .inline-input': {
+                      color: 'primary.main',
+                      fontWeight: 'medium',
+                      bgcolor: 'action.hover',
+                      px: 0.5,
+                      py: 0.25,
+                      borderRadius: 0.5
+                    }
+                  }}>
+                    {editingField.metadata?.content[0]?.preLabel || ''}
+                    <span className="inline-input">
+                      {`{{${editingField.metadata?.content[0]?.attributeName || ''}}}`}
+                    </span>
+                    {editingField.metadata?.content[0]?.postLabel || ''}
+                  </Typography>
+                </Box>
               </Stack>
             </Box>
           )}
 
-          {/* Decision Field Go To Section */}
-          {editingField.type === 'decision' && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="subtitle1" color="primary" gutterBottom sx={{ fontWeight: 500 }}>
-                Navigation
+          {/* Options Section - Only show for option type fields */}
+          {isOptionType && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Options
               </Typography>
-              <FormControl fullWidth>
-                <InputLabel>Default Go To Section</InputLabel>
-                <Select
-                  value={editingField.goTo || ''}
-                  onChange={(e) => setEditingField({ ...editingField, goTo: e.target.value })}
-                  label="Default Go To Section"
-                >
-                  <MenuItem value="">
-                    <em>None</em>
-                  </MenuItem>
-                  {getAvailableSections().map((section) => (
-                    <MenuItem key={section.value} value={section.value}>
-                      {section.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              {editingOptions.map((option, index) => (
+                <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  {/* Existing option fields */}
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <TextField
+                      label="Value"
+                      value={option.value}
+                      onChange={(e) => handleOptionChange(index, 'value', e.target.value)}
+                      size="small"
+                      sx={{ flexGrow: 1 }}
+                    />
+                    <TextField
+                      label="Text"
+                      value={option.text}
+                      onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
+                      size="small"
+                      sx={{ flexGrow: 1 }}
+                    />
+                  </Box>
+
+                  {/* Add Go To section for decision field options */}
+                  {editingField.type === 'decision' && (
+                    <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+                      <InputLabel>Go To Section</InputLabel>
+                      <Select
+                        value={option.goTo || ''}
+                        onChange={(e) => handleOptionChange(index, 'goTo', e.target.value)}
+                        label="Go To Section"
+                      >
+                        <MenuItem value="">
+                          <em>None</em>
+                        </MenuItem>
+                        {sections.map((section) => (
+                          <MenuItem key={section.id} value={section.attributeName}>
+                            {section.title} ({section.attributeName})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
+
+                  {/* Summary controls */}
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
+                    <FormControl size="small" sx={{ minWidth: 200 }}>
+                      <InputLabel>Deal Summary</InputLabel>
+                      <Select
+                        value={option.dealSummary === undefined ? 'exclude' : (option.dealSummary ? 'show' : 'hide')}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleOptionChange(index, 'dealSummary', 
+                            value === 'exclude' ? undefined : value === 'show'
+                          );
+                        }}
+                        label="Deal Summary"
+                      >
+                        <MenuItem value="exclude">Do not include</MenuItem>
+                        <MenuItem value="hide">Include (Hidden)</MenuItem>
+                        <MenuItem value="show">Include (Shown)</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <FormControl size="small" sx={{ minWidth: 200 }}>
+                      <InputLabel>Form Summary</InputLabel>
+                      <Select
+                        value={option.formSummary === undefined ? 'exclude' : (option.formSummary ? 'show' : 'hide')}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleOptionChange(index, 'formSummary', 
+                            value === 'exclude' ? undefined : value === 'show'
+                          );
+                        }}
+                        label="Form Summary"
+                      >
+                        <MenuItem value="exclude">Do not include</MenuItem>
+                        <MenuItem value="hide">Include (Hidden)</MenuItem>
+                        <MenuItem value="show">Include (Shown)</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={option.formUpload || false}
+                          onChange={(e) => handleOptionChange(index, 'formUpload', e.target.checked)}
+                        />
+                      }
+                      label="Include in Upload"
+                    />
+                  </Box>
+                </Box>
+              ))}
             </Box>
           )}
         </DialogContent>
@@ -684,38 +800,32 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
               mt: -0.5
             }}
           >
-            {field.label || 'Unnamed Field'}
+            {field.type === 'inlineInput' 
+              ? field.metadata?.content[0]?.attributeName || 'Unnamed Field'
+              : field.label || 'Unnamed Field'}
           </Typography>
-
-          {/* Edit button - show for both unassigned and section fields */}
-          <IconButton
-            size="small"
+          <IconButton 
             onClick={() => handleFieldEdit(field)}
+            size="small"
             sx={{ 
-              opacity: 0.7, 
-              color: 'common.white',
-              '&:hover': { 
+              color: 'primary.main',
+              opacity: 0.7,
+              '&:hover': {
                 opacity: 1,
-                bgcolor: 'rgba(255, 255, 255, 0.1)' 
-              },
-              padding: '2px',
-              marginRight: -1,
-              '& svg': {  // Make the icon smaller
-                fontSize: '1rem'
+                bgcolor: 'rgba(0, 168, 150, 0.1)'
               }
             }}
           >
-            <EditIcon />
+            <EditIcon fontSize="small" />
           </IconButton>
         </Box>
 
-        {/* Middle row - Type and attribute name */}
+        {/* Field info row */}
         <Box sx={{ 
           display: 'flex', 
-          alignItems: 'center',
-          gap: 1.5,
-          mt: 0.5,
-          mb: isInSection ? 1 : 0
+          alignItems: 'center', 
+          gap: 1,
+          mb: isInSection && field.type === 'inlineInput' ? 2 : 0  // Add margin if preview will show
         }}>
           <Chip
             label={field.type}
@@ -745,96 +855,42 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
           >
             {field.attributeName || 'No attribute name'}
           </Typography>
-
-          {/* Show badge for both unassigned and section fields if it's an option type */}
-          {['checkbox', 'checkboxWithOther', 'radio', 'radioWithOther', 'decision'].includes(field.type) && (
-            <Badge 
-              badgeContent={field.metadata?.options?.length || 0}
-              color="primary"
-              sx={{ 
-                transform: 'scale(0.9)',
-                flexShrink: 0,
-                '& .MuiBadge-badge': {
-                  fontSize: '0.75rem',
-                  minWidth: '20px',
-                  height: '20px',
-                  padding: '0 6px'
-                }
-              }}
-            />
-          )}
         </Box>
 
-        {/* Bottom row - Controls for section fields only */}
-        {isInSection && !['checkbox', 'checkboxWithOther', 'radio', 'radioWithOther', 'decision'].includes(field.type) && (
+        {/* Preview for inlineInput fields when in section */}
+        {isInSection && field.type === 'inlineInput' && (
           <Box sx={{ 
-            display: 'flex', 
-            gap: 2,
-            alignItems: 'center',
-            flexWrap: 'wrap'
+            mt: 2,
+            pt: 2,
+            pr: 2,
+            borderTop: '1px solid',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            width: '100%'
           }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <Select
-                value={field.dealSummary === undefined ? 'exclude' : (field.dealSummary ? 'show' : 'hide')}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  handleFieldPropertyChange(field.id, 'dealSummary', 
-                    value === 'exclude' ? undefined : value === 'show'
-                  );
-                }}
-                variant="standard"
-                sx={{ fontSize: '0.75rem' }}
-              >
-                <MenuItem value="exclude">Do not include in Deal Summary</MenuItem>
-                <MenuItem value="hide">Include in Deal Summary (Hidden)</MenuItem>
-                <MenuItem value="show">Include in Deal Summary (Shown)</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <Select
-                value={field.formSummary === undefined ? 'exclude' : (field.formSummary ? 'show' : 'hide')}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  handleFieldPropertyChange(field.id, 'formSummary', 
-                    value === 'exclude' ? undefined : value === 'show'
-                  );
-                }}
-                variant="standard"
-                sx={{ fontSize: '0.75rem' }}
-              >
-                <MenuItem value="exclude">Do not include in Form Summary</MenuItem>
-                <MenuItem value="hide">Include in Form Summary (Hidden)</MenuItem>
-                <MenuItem value="show">Include in Form Summary (Shown)</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={field.formUpload || false}
-                  onChange={(e) => handleFieldPropertyChange(field.id, 'formUpload', e.target.checked)}
-                  sx={{ 
-                    color: 'rgba(255, 255, 255, 0.3)',
-                    '&.Mui-checked': {
-                      color: 'primary.main'
-                    }
-                  }}
-                />
-              }
-              label={
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                  Include in Form Upload Data
-                </Typography>
-              }
+            <Typography 
+              variant="body2" 
               sx={{ 
-                mr: 0,
-                '& .MuiFormControlLabel-label': {
-                  fontSize: '0.75rem'
-                }
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '0.875rem',
+                lineHeight: 1.5,
+                wordBreak: 'break-word',
+                whiteSpace: 'pre-wrap'
               }}
-            />
+            >
+              {field.metadata?.content[0]?.preLabel || ''}
+              <span style={{ 
+                color: '#00a896',
+                backgroundColor: 'rgba(0, 168, 150, 0.1)',
+                padding: '2px 4px',
+                borderRadius: '4px',
+                margin: '0 4px',
+                display: 'inline-block',
+                wordBreak: 'keep-all'
+              }}>
+                {`{{${field.metadata?.content[0]?.attributeName || ''}}}`}
+              </span>
+              {field.metadata?.content[0]?.postLabel || ''}
+            </Typography>
           </Box>
         )}
       </Box>

@@ -13,7 +13,8 @@ const VALID_FIELD_TYPES = [
   'radioWithOther',
   'decision',
   'data',
-  'dataWithInput'
+  'dataWithInput',
+  'inlineInput'
 ];
 
 const FileUpload = ({ onUpload, resetTrigger, disabled }) => {
@@ -111,7 +112,7 @@ const FileUpload = ({ onUpload, resetTrigger, disabled }) => {
           }
         }
       } else {
-        // Create new parent field matching JSON Example structure
+        // Create new parent field
         const newField = {
           id: `field-${row.Field}`,
           order: order++,
@@ -134,13 +135,33 @@ const FileUpload = ({ onUpload, resetTrigger, disabled }) => {
             required: true
           },
           validationErrorMessage: 'Required',
-          metadata: fieldType === 'radio' || 
-                   fieldType === 'checkbox' || 
-                   fieldType === 'checkboxWithOther' || 
-                   fieldType === 'radioWithOther' || 
-                   fieldType === 'decision'
-            ? { options: [] }
-            : null,
+          metadata: fieldType === 'inlineInput'
+            ? {
+                content: [{
+                  attributeName: row.Field,
+                  placeholder: row.Placeholder || '',
+                  preLabel: '',  // Will be set in edit mode
+                  postLabel: '', // Will be set in edit mode
+                  validation: {
+                    min: null,
+                    max: null,
+                    minLength: null,
+                    maxLength: null,
+                    patterns: null,
+                    required: null
+                  },
+                  validationErrorMessage: null,
+                  value: null,
+                  width: '100px'
+                }]
+              }
+            : (fieldType === 'radio' || 
+               fieldType === 'checkbox' || 
+               fieldType === 'checkboxWithOther' || 
+               fieldType === 'radioWithOther' || 
+               fieldType === 'decision'
+              ? { options: [] }
+              : null),
           sectionId: null
         };
 
