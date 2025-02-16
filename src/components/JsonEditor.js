@@ -825,7 +825,7 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
           display: 'flex', 
           alignItems: 'center', 
           gap: 1,
-          mb: isInSection && field.type === 'inlineInput' ? 2 : 0  // Add margin if preview will show
+          mb: isInSection && field.type === 'inlineInput' ? 2 : 0
         }}>
           <Chip
             label={field.type}
@@ -855,6 +855,24 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
           >
             {field.attributeName || 'No attribute name'}
           </Typography>
+
+          {/* Add counter badge for fields with options */}
+          {['checkbox', 'checkboxWithOther', 'radio', 'radioWithOther', 'decision'].includes(field.type) && (
+            <Badge 
+              badgeContent={field.metadata?.options?.length || 0}
+              color="primary"
+              sx={{ 
+                transform: 'scale(0.9)',
+                flexShrink: 0,
+                '& .MuiBadge-badge': {
+                  fontSize: '0.75rem',
+                  minWidth: '20px',
+                  height: '20px',
+                  padding: '0 6px'
+                }
+              }}
+            />
+          )}
         </Box>
 
         {/* Preview for inlineInput fields when in section */}
@@ -891,6 +909,149 @@ const JsonEditor = ({ fields, sections, setSections, onFieldAssign, onFieldsUpda
               </span>
               {field.metadata?.content[0]?.postLabel || ''}
             </Typography>
+          </Box>
+        )}
+
+        {/* Bottom row - Controls for section fields only */}
+        {isInSection && (
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            mt: 2,
+            pt: 2,
+            borderTop: '1px solid',
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+          }}>
+            {/* Show controls only for non-inlineInput fields */}
+            {field.type !== 'inlineInput' && (
+              <>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <Select
+                    value={field.dealSummary === undefined ? 'exclude' : (field.dealSummary ? 'show' : 'hide')}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleFieldPropertyChange(field.id, 'dealSummary', 
+                        value === 'exclude' ? undefined : value === 'show'
+                      );
+                    }}
+                    variant="standard"
+                    sx={{ fontSize: '0.75rem' }}
+                  >
+                    <MenuItem value="exclude">Do not include in Deal Summary</MenuItem>
+                    <MenuItem value="hide">Include in Deal Summary (Hidden)</MenuItem>
+                    <MenuItem value="show">Include in Deal Summary (Shown)</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <Select
+                    value={field.formSummary === undefined ? 'exclude' : (field.formSummary ? 'show' : 'hide')}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleFieldPropertyChange(field.id, 'formSummary', 
+                        value === 'exclude' ? undefined : value === 'show'
+                      );
+                    }}
+                    variant="standard"
+                    sx={{ fontSize: '0.75rem' }}
+                  >
+                    <MenuItem value="exclude">Do not include in Form Summary</MenuItem>
+                    <MenuItem value="hide">Include in Form Summary (Hidden)</MenuItem>
+                    <MenuItem value="show">Include in Form Summary (Shown)</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={field.formUpload || false}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          handleFieldPropertyChange(field.id, 'formUpload', isChecked);
+                          
+                          // Update formUploadData in metadata
+                          const updatedField = {
+                            ...field,
+                            formUpload: isChecked,
+                            metadata: {
+                              ...field.metadata,
+                              formUploadData: isChecked ? field.attributeName : undefined
+                            }
+                          };
+                          handleFieldUpdate(field.id, updatedField);
+                        }}
+                        sx={{ 
+                          color: 'rgba(255, 255, 255, 0.3)',
+                          '&.Mui-checked': {
+                            color: 'primary.main'
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                        Include in Form Upload Data
+                      </Typography>
+                    }
+                    sx={{ 
+                      mr: 0,
+                      '& .MuiFormControlLabel-label': {
+                        fontSize: '0.75rem'
+                      }
+                    }}
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={field.offerCompare || false}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          handleFieldPropertyChange(field.id, 'offerCompare', isChecked);
+                          
+                          // Update offerCompareData in metadata
+                          const updatedField = {
+                            ...field,
+                            offerCompare: isChecked,
+                            metadata: {
+                              ...field.metadata,
+                              offerCompareData: isChecked ? {
+                                key: field.attributeName,
+                                label: field.label,
+                                formSummaryFields: [field.attributeName]
+                              } : undefined
+                            }
+                          };
+                          handleFieldUpdate(field.id, updatedField);
+                        }}
+                        sx={{ 
+                          color: 'rgba(255, 255, 255, 0.3)',
+                          '&.Mui-checked': {
+                            color: 'primary.main'
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                        Include in Offer Compare
+                      </Typography>
+                    }
+                    sx={{ 
+                      mr: 0,
+                      '& .MuiFormControlLabel-label': {
+                        fontSize: '0.75rem'
+                      }
+                    }}
+                  />
+                </Box>
+              </>
+            )}
           </Box>
         )}
       </Box>

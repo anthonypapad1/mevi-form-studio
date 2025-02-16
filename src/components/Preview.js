@@ -1,7 +1,9 @@
-import React from 'react';
-import { Box, Button, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Button, Typography, Card, CardHeader, CardContent } from '@mui/material';
 
 const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], formDetails = {} }) => {
+  const [activeTab, setActiveTab] = useState('form');
+
   const generateSignaturesJSON = () => {
     if (!selectedRoles || selectedRoles.length === 0) {
       return {};
@@ -89,6 +91,12 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
       .map(field => field.attributeName)
       .filter(Boolean);
 
+    // Get offerCompareData from fields marked for offer compare
+    const offerCompareData = fields
+      .filter(field => field.type !== 'inlineInput' && field.offerCompare)
+      .map(field => field.attributeName)
+      .filter(Boolean);
+
     // Get first section's attribute name for default start section
     const startSectionAttributeName = sections[0]?.attributeName || null;
 
@@ -101,6 +109,7 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
         meviDealRoleCreator: selectedCreators,
         otherSideCanUpload: true,
         formUploadData: formUploadData,
+        offerCompareData: offerCompareData,
         settings: {
           type: {}  // Empty by default
         }
@@ -174,8 +183,20 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
     return JSON.stringify(form, null, 2);
   };
 
+  const getOfferCompareJson = () => {
+    const offerCompareFields = fields
+      .filter(field => field.type !== 'inlineInput' && field.offerCompare)
+      .map(field => ({
+        key: field.attributeName,
+        label: field.label,
+        formSummaryFields: [field.attributeName]
+      }));
+
+    return JSON.stringify(offerCompareFields, null, 2);
+  };
+
   const handleDownload = () => {
-    const json = generateJson();
+    const json = activeTab === 'form' ? generateJson() : getOfferCompareJson();
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -183,7 +204,7 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
     
     // Just use the form type for the filename
     const formType = formDetails.type ? formDetails.type.toLowerCase().replace(/\s+/g, '-') : 'form-definition';
-    a.download = `${formType}.json`;
+    a.download = `${activeTab === 'form' ? formType : 'offer-compare'}.json`;
     
     document.body.appendChild(a);
     a.click();
@@ -224,34 +245,40 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" sx={{ color: 'primary.main' }}>
-          JSON Preview
-        </Typography>
-        <Box>
-          <Button 
-            variant="outlined" 
-            color="primary" 
-            onClick={() => {
-              navigator.clipboard.writeText(generateJson());
-            }}
-            sx={{ mr: 1 }}
-          >
-            Copy to Clipboard
-          </Button>
-          <Button 
-            variant="contained" 
-            color="primary" 
+    <Card>
+      <CardHeader 
+        title={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h6">JSON Preview</Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant={activeTab === 'form' ? 'contained' : 'outlined'}
+                onClick={() => setActiveTab('form')}
+                size="small"
+              >
+                Form JSON
+              </Button>
+              <Button
+                variant={activeTab === 'offerCompare' ? 'contained' : 'outlined'}
+                onClick={() => setActiveTab('offerCompare')}
+                size="small"
+              >
+                Offer Compare
+              </Button>
+            </Box>
+          </Box>
+        }
+        action={
+          <Button
+            variant="contained"
             onClick={handleDownload}
           >
             Download JSON
           </Button>
-        </Box>
-      </Box>
-      
-      <pre
-        style={{
+        }
+      />
+      <CardContent>
+        <pre style={{
           backgroundColor: '#1e1e1e',  // VS Code dark theme background
           color: '#d4d4d4',           // Default text color
           padding: '1rem',
@@ -259,10 +286,17 @@ const Preview = ({ fields, sections, selectedRoles = [], selectedCreators = [], 
           overflow: 'auto',
           fontSize: '14px',
           fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
-        }}
-        dangerouslySetInnerHTML={{ __html: syntaxHighlight(generateJson()) }}
-      />
-    </Box>
+          margin: 0,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word'
+        }}>
+          {activeTab === 'form' 
+            ? <div dangerouslySetInnerHTML={{ __html: syntaxHighlight(generateJson()) }} />
+            : <div dangerouslySetInnerHTML={{ __html: syntaxHighlight(getOfferCompareJson()) }} />
+          }
+        </pre>
+      </CardContent>
+    </Card>
   );
 };
 
